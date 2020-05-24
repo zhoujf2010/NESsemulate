@@ -9,6 +9,9 @@
 &emsp;&emsp;First I downloaded it from the internet witch is in the folder "Fc semulate"  
 &emsp;&emsp;Again I download the semulator programmes witch are written in C# or C++  
 
-&emsp;&emsp;At last I worte is in Java language.
+&emsp;&emsp;At last I worte is in Java language.  
+&emsp;&emsp;Here are some notes:  
+- [Introduce FC](./detailInfo/ch1.md)
+
 
 
