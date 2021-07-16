@@ -31,8 +31,14 @@ public class Program
 {
     static JPanel mainPanel = null;
 
-    public static void main(String[] args) throws InterruptedException {
-        String rompath = "src\\rom.nes";
+    public static void main(String[] args) throws InterruptedException, FileNotFoundException {
+        
+        
+        String rompath = "rom.nes";
+        if (!new File(rompath).exists())
+            rompath = "src\\rom.nes";
+        if (!new File(rompath).exists())
+            rompath = "/opt/NES/rom.nes";
 
         final MotherBoard pc = new MotherBoard(); // 定义PC设备
 
@@ -94,6 +100,9 @@ public class Program
             }
         });
 
+        if ("Linux".equals(System.getProperty("os.name")))
+            ReadFormJoypadLinux(pc);
+
         // 刷新一帖画页，更新显示图片
         pc.SetFrameRefresh((e) -> {
             mainPanel.repaint();
@@ -106,6 +115,83 @@ public class Program
 
         frame.setVisible(true);// 显示窗体
         pc.run(); // 开机
+    }
+
+    private static void ReadFormJoypadLinux(MotherBoard pc) throws FileNotFoundException {
+
+        FileInputStream inputStream = new FileInputStream("/dev/input/js0");
+
+        new Thread()
+        {
+            public void run() {
+                try {
+                    byte[] buffer = new byte[8];
+                    int b;
+                    String result = "";
+                    System.out.println("Read from device ");
+                    short oldmount = 0;
+                    while ((b = inputStream.read(buffer)) > 0) {
+                        if (b < 8)
+                            System.out.println("Only read " + b + " bytes from F710. Ignoring and continuing.");
+                        else {
+                            long time = ((((((buffer[3] & 0x00000000000000ff) << 8) | (buffer[2] & 0x00ff)) << 8)
+                                    | (buffer[1] & 0x00ff)) << 8) | (buffer[0] & 0x00ff);
+                            short amount = (short) (((buffer[5] & 0x00ff) << 8) | (buffer[4] & 0x00ff));
+                            short controlType = buffer[6]; // buffer[6]==1 => button, buffer[6]==2 => joystick
+                            short control = buffer[7];
+//                            System.err
+//                                    .println("got HID event time " + time + " controlType " + controlType + " control "
+//                                            + control + " amount " + amount + " b5=" + buffer[5] + "b4=" + buffer[4]);
+
+//                            System.out.println("====1>" + pc.joypaddata1);
+                            if (amount != 0) {
+                                pc.joypaddata1 = ReadKey1_joypad(controlType, control, amount, pc.joypaddata1,
+                                        (x, y) -> {
+                                            return x | y;
+                                        });
+                                oldmount = amount;
+                            }
+                            else {
+                                pc.joypaddata1 = ReadKey1_joypad(controlType, control, amount, pc.joypaddata1,
+                                        (x, y) -> {
+                                            return x & ~y;//x ^ y;
+                                        });
+                            }
+//                            System.out.println("====2>" + pc.joypaddata1);
+                        }
+                    }
+                }
+                catch (Exception e) {
+                    System.out.println("F710.run failure. Exiting read thread." + e);
+                }
+            }
+        }.start();
+    }
+
+    private static int ReadKey1_joypad(short controlType, short control, short amount, int num, ICalc calc) {
+        if (controlType == 1 && control == 0) // A (健盘K)
+            num = calc.CalcNum(num, 0x01);
+        else if (controlType == 1 && control == 3) // B (健盘J)
+            num = calc.CalcNum(num, 0x02);
+        else if (controlType == 1 && control == 8) // Select (健盘V)
+            num = calc.CalcNum(num, 0x04);
+        else if (controlType == 1 && control == 9) // Select (健盘B)
+            num = calc.CalcNum(num, 0x08);
+        else if (controlType == 2 && control == 1 && amount < 0) // Up (健盘W)
+            num = calc.CalcNum(num, 0x10);
+        else if (controlType == 2 && control == 1 && amount > 0) // Down (健盘S)
+            num = calc.CalcNum(num, 0x20);
+        else if (controlType == 2 && control == 0 && amount < 0) // Left (健盘A)
+            num = calc.CalcNum(num, 0x40);
+        else if (controlType == 2 && control == 0 && amount > 0) // Right (健盘D)
+            num = calc.CalcNum(num, 0x80);
+        else if (controlType == 2 && amount == 0) { // 方向归0
+            num = calc.CalcNum(num, 0x10);
+            num = calc.CalcNum(num, 0x20);
+            num = calc.CalcNum(num, 0x40);
+            num = calc.CalcNum(num, 0x80);
+        }
+        return num;
     }
 
     interface ICalc
