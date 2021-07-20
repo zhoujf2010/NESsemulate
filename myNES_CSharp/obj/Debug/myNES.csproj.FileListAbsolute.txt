@@ -1,0 +1,9 @@
+E:\github\NESsemulate\myNES_CSharp\bin\Debug\rom.nes
+E:\github\NESsemulate\myNES_CSharp\bin\Debug\myNES.exe
+E:\github\NESsemulate\myNES_CSharp\bin\Debug\myNES.pdb
+E:\github\NESsemulate\myNES_CSharp\obj\Debug\myNES.csprojAssemblyReference.cache
+E:\github\NESsemulate\myNES_CSharp\obj\Debug\AHD.MyNes.Core.Form_Main.resources
+E:\github\NESsemulate\myNES_CSharp\obj\Debug\myNES.csproj.GenerateResource.cache
+E:\github\NESsemulate\myNES_CSharp\obj\Debug\myNES.csproj.CoreCompileInputs.cache
+E:\github\NESsemulate\myNES_CSharp\obj\Debug\myNES.exe
+E:\github\NESsemulate\myNES_CSharp\obj\Debug\myNES.pdb

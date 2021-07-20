@@ -119,6 +119,8 @@ namespace AHD.MyNes.Nes
             }
             set
             {
+                if (value < 0)
+                    System.Console.WriteLine();
                 this._lengthCounter = value;
             }
         }

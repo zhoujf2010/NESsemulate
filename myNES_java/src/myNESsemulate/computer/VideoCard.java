@@ -1,19 +1,50 @@
 package myNESsemulate.computer;
 
-import myNESsemulate.computer.MotherBoard.MIRRORING;
-
-/**
- * 显卡模拟(PPU芯片)
- * 本程序参考Ala Hadid (AHD)的C#程序
- * 
- * @作者 Jeffrey Zhou
- */
 public class VideoCard
 {
-    public VideoCard(MotherBoard _NesEmu) {
+    MotherBoard mb;
 
-        this._NesEmu = _NesEmu;
-        FramePeriod = 0.01667 * 1000;// 60 FPS
+    public VideoCard(MotherBoard motherBoard) {
+        this.mb = motherBoard;
+        byte[] rom = mb.card;
+        
+        // 将显示数据读入显存中
+        int numprg_roms = rom[4];// 16kB ROM的数目
+        int numchr_roms = rom[5];// 8kB VROM的数目
+        chr_roms = new byte[1024 * 8 * numchr_roms];
+        for (int i = 0; i < 1024 * 8 * numchr_roms; i++) {
+            chr_roms[i] = rom[i + 1024 * 16 * numprg_roms + 16];
+        }
+        if ((rom[6] & 0x1) == 0x0)
+            mirroring = MIRRORING.HORIZONTAL;
+        else
+            mirroring = MIRRORING.VERTICAL;
+//        int offset = 0x8000 + 4096 * 7;
+//        if ((mb.ReadBus8(0xfe0 + offset) == 'B') && (mb.ReadBus8(0xfe1 + offset) == 'B')
+//                && (mb.ReadBus8(0xfe2 + offset) == '4') && (mb.ReadBus8(0xfe3 + offset) == '7')
+//                && (mb.ReadBus8(0xfe4 + offset) == '9') && (mb.ReadBus8(0xfe5 + offset) == '5')
+//                && (mb.ReadBus8(0xfe6 + offset) == '6') && (mb.ReadBus8(0xfe7 + offset) == '-')
+//                && (mb.ReadBus8(0xfe8 + offset) == '1') && (mb.ReadBus8(0xfe9 + offset) == '5')
+//                && (mb.ReadBus8(0xfea + offset) == '4') && (mb.ReadBus8(0xfeb + offset) == '4')
+//                && (mb.ReadBus8(0xfec + offset) == '0')) {
+//            fix_scrolloffset1 = true;
+//        }
+//        offset = 0x8000;
+//        if ((mb.ReadBus8(0x9 + offset) == 0xfc) && (mb.ReadBus8(0xa + offset) == 0xfc)
+//                && (mb.ReadBus8(0xb + offset) == 0xfc) && (mb.ReadBus8(0xc + offset) == 0x40)
+//                && (mb.ReadBus8(0xd + offset) == 0x40) && (mb.ReadBus8(0xe + offset) == 0x40)
+//                && (mb.ReadBus8(0xf + offset) == 0x40)) {
+//            fix_scrolloffset2 = true;
+//        }
+//        if ((mb.ReadBus8(0x75 + offset) == 0x11) && (mb.ReadBus8(0x76 + offset) == 0x12)
+//                && (mb.ReadBus8(0x77 + offset) == 0x13) && (mb.ReadBus8(0x78 + offset) == 0x14)
+//                && (mb.ReadBus8(0x79 + offset) == 0x07) && (mb.ReadBus8(0x7a + offset) == 0x03)
+//                && (mb.ReadBus8(0x7b + offset) == 0x03) && (mb.ReadBus8(0x7c + offset) == 0x03)
+//                && (mb.ReadBus8(0x7d + offset) == 0x03)) {
+//            fix_scrolloffset3 = true;
+//        }
+        
+        
         //////////////////////////////
         // This value is important, in doc's, they say
         // that VBLANK is happens in SL (scan line) # 240
@@ -34,9 +65,46 @@ public class VideoCard
         RestartPPU();
     }
 
-    private MotherBoard _NesEmu;
+    public MIRRORING mirroring;
+    public int mirroringBase; // For one screen mirroring
 
-    private double FramePeriod = 0;
+    public enum MIRRORING
+    {
+        HORIZONTAL, VERTICAL, FOUR_SCREEN, ONE_SCREEN
+    };
+//    public boolean fix_scrolloffset1;
+//    public boolean fix_scrolloffset2;
+//    public boolean fix_scrolloffset3;
+
+    public byte Read(int address) {
+        if (address == 0x2002)
+            return Status_Register_Read();
+        else if (address == 0x2004)
+            return SpriteRam_IO_Register_Read();
+        else if (address == 0x2007)
+            return VRAM_IO_Register_Read();
+        return 0;
+    }
+    
+    public void Write(int address, byte data) {
+        if (address == 0x2000)
+            Control_Register_1_Write(data);
+        else if (address == 0x2001)
+            Control_Register_2_Write(data);
+        else if (address == 0x2003)
+            SpriteRam_Address_Register_Write(data);
+        else if (address == 0x2004)
+            SpriteRam_IO_Register_Write(data);
+        else if (address == 0x2005)
+            VRAM_Address_Register_1_Write(data);
+        else if (address == 0x2006)
+            VRAM_Address_Register_2_Write(data);
+        else if (address == 0x2007)
+            VRAM_IO_Register_Write(data);
+        else if (address == 0x4014)
+            SpriteRam_DMA_Begin(data);
+    }
+    
     private int ScanlinesOfVBLANK = 248;
     public byte[] chr_roms;
 
@@ -62,8 +130,7 @@ public class VideoCard
     private byte[] spriteRam;
     private int spriteRamAddress;
     private int spritesCrossed;
-    private short[] offscreenBuffer;
-    private double _lastFrameTime = 0;
+    public short[] offscreenBuffer;
     
     // Video myVideo;
     public int[] Nes_Palette = {0x8410, 0x17, 0x3017, 0x8014, 0xb80d, 0xb003, 0xb000, 0x9120, 0x7940, 0x1e0, 0x241,
@@ -119,22 +186,11 @@ public class VideoCard
             }
         }
         if (currentScanline == 240) {
-            _NesEmu.RenderFrame(offscreenBuffer);
+//            mb.RenderFrame(offscreenBuffer);
         }
         currentScanline++;
 
-        //输出声音
         if (currentScanline == 262) {
-            _NesEmu.RendSound();
-        }
-
-        if (currentScanline == 262) {
-            // 卡住，让快速的CPU慢下来，保证60 fps
-            while (true) {
-                if ((System.currentTimeMillis() - _lastFrameTime) >= FramePeriod)
-                    break;
-            }
-            _lastFrameTime = System.currentTimeMillis();
             currentScanline = 0;
             sprite0Hit = 0;
         }
@@ -249,7 +305,7 @@ public class VideoCard
              * }
              */
             // Next Try: Forcing two page only: 0x2000 and 0x2400
-            if (_NesEmu.mirroring == MIRRORING.HORIZONTAL) {
+            if (mirroring == MIRRORING.HORIZONTAL) {
                 switch (nameTableBase) {
                     case (0x2400):
                         nameTableBase = 0x2000;
@@ -262,7 +318,7 @@ public class VideoCard
                         break;
                 }
             }
-            else if (_NesEmu.mirroring == MIRRORING.VERTICAL) {
+            else if (mirroring == MIRRORING.VERTICAL) {
                 switch (nameTableBase) {
                     case (0x2800):
                         nameTableBase = 0x2000;
@@ -272,8 +328,8 @@ public class VideoCard
                         break;
                 }
             }
-            else if (_NesEmu.mirroring == MIRRORING.ONE_SCREEN) {
-                nameTableBase = (int) _NesEmu.mirroringBase;
+            else if (mirroring == MIRRORING.ONE_SCREEN) {
+                nameTableBase = (int) mirroringBase;
             }
 
             for (currentTileColumn = startColumn; currentTileColumn < endColumn; currentTileColumn++) {
@@ -632,20 +688,20 @@ public class VideoCard
             if (scrollH > 239) {
                 scrollH = 0;
             }
-            if (_NesEmu.fix_scrolloffset2) {
-                if (currentScanline < 240) {
-                    scrollH = (byte) (scrollH - currentScanline + 8) & 0xff;
-                }
-            }
-            if (_NesEmu.fix_scrolloffset1) {
-                if (currentScanline < 240) {
-                    scrollH = (byte) (scrollH - currentScanline) & 0xff;
-                }
-            }
-            if (_NesEmu.fix_scrolloffset3) {
-                if (currentScanline < 240)
-                    scrollH = 238;
-            }
+//            if (fix_scrolloffset2) {
+//                if (currentScanline < 240) {
+//                    scrollH = (byte) (scrollH - currentScanline + 8) & 0xff;
+//                }
+//            }
+//            if (fix_scrolloffset1) {
+//                if (currentScanline < 240) {
+//                    scrollH = (byte) (scrollH - currentScanline) & 0xff;
+//                }
+//            }
+//            if (fix_scrolloffset3) {
+//                if (currentScanline < 240)
+//                    scrollH = 238;
+//            }
             vramHiLoToggle = 1;
         }
     }
@@ -673,7 +729,7 @@ public class VideoCard
             // _NesEmu.myMapper.WriteChrRom((ushort)vramReadWriteAddress, data);
         }
         else if ((vramReadWriteAddress >= 0x2000) && (vramReadWriteAddress < 0x3f00)) {
-            if (_NesEmu.mirroring == MIRRORING.HORIZONTAL) {
+            if (mirroring == MIRRORING.HORIZONTAL) {
                 switch (vramReadWriteAddress & 0x2C00) {
                     case (0x2000):
                         nameTables[vramReadWriteAddress - 0x2000] = data;
@@ -689,7 +745,7 @@ public class VideoCard
                         break;
                 }
             }
-            else if (_NesEmu.mirroring == MIRRORING.VERTICAL) {
+            else if (mirroring == MIRRORING.VERTICAL) {
                 switch (vramReadWriteAddress & 0x2C00) {
                     case (0x2000):
                         nameTables[vramReadWriteAddress - 0x2000] = data;
@@ -705,8 +761,8 @@ public class VideoCard
                         break;
                 }
             }
-            else if (_NesEmu.mirroring == MIRRORING.ONE_SCREEN) {
-                if (_NesEmu.mirroringBase == 0x2000) {
+            else if (mirroring == MIRRORING.ONE_SCREEN) {
+                if (mirroringBase == 0x2000) {
                     switch (vramReadWriteAddress & 0x2C00) {
                         case (0x2000):
                             nameTables[vramReadWriteAddress - 0x2000] = data;
@@ -722,7 +778,7 @@ public class VideoCard
                             break;
                     }
                 }
-                else if (_NesEmu.mirroringBase == 0x2400) {
+                else if (mirroringBase == 0x2400) {
                     switch (vramReadWriteAddress & 0x2C00) {
                         case (0x2000):
                             nameTables[vramReadWriteAddress + 0x400 - 0x2000] = data;
@@ -756,7 +812,7 @@ public class VideoCard
     public void SpriteRam_DMA_Begin(byte data) {
         int i;
         for (i = 0; i < 0x100; i++) {
-            spriteRam[i] = _NesEmu.ReadBus8((data & 0xFF) * 0x100 + i);
+            spriteRam[i] = mb.ReadBus8((data & 0xFF) * 0x100 + i);
         }
     }
 }

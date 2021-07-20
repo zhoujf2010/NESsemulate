@@ -1,6 +1,6 @@
-package NESDemo.Channel;
+package myNESsemulate.computer.Channel;
 
-import NESDemo.MotherBoard;
+import myNESsemulate.computer.MotherBoard;
 
 public class Channel_DMC extends APUChannel
 {
@@ -31,7 +31,7 @@ public class Channel_DMC extends APUChannel
         _Nes = NesEmu;
     }
 
-    public long RenderSample() {
+    public int RenderSample() {
         if (super.getEnabled()) {
             super.setSampleCount(super.getSampleCount()+1);
             if (super.getSampleCount() > this._renderedWavelength) {

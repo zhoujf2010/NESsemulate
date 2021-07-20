@@ -1,24 +1,23 @@
 package myNESsemulate.computer;
 
-/**
- * 6502 CPU 模拟
- * 本程序参考Ala Hadid (AHD)的C#程序
- * 
- * @作者 Jeffrey Zhou
- */
 public class CPU
 {
-    private MotherBoard _NesEmu;
-    
+    private MotherBoard mb;
+    public boolean isQuitting = false;
+
+    public CPU(MotherBoard mb) {
+        this.mb = mb;
+    }
+
     // 寄存器
-    private byte a_register; // 它是一个8位寄存器，一般称为累加器或A寄存器
-    private byte x_index_register;  //变址寄存器X
-    private byte y_index_register;  //变址寄存器Y
-    private byte sp_register; // 专用于指示系统堆栈栈顶位置的8位寄存器
-    public int pc_register; // ushort PC是6502CPU中的16位寄存器，它主要用于存放下一条指令的首字节地址
-    private byte p_register; // 状态寄存器（C — 进位标志，Z — 零标志， I — 中断禁止（屏蔽）标志，
-                           //D — 十进制运算标志， B — 软件中断指令标志， V — 溢出标志，N — 负数标志
-    // Flags
+    private byte a_register = 0; // 它是一个8位寄存器，一般称为累加器或A寄存器
+    private byte x_index_register = 0; //变址寄存器X
+    private byte y_index_register = 0; //变址寄存器Y
+    private byte sp_register = (byte) 0xff; // 专用于指示系统堆栈栈顶位置的8位寄存器
+    public int pc_register = 0; // ushort PC是6502CPU中的16位寄存器，它主要用于存放下一条指令的首字节地址
+    private byte p_register = 0; // 状态寄存器（C — 进位标志，Z — 零标志， I — 中断禁止（屏蔽）标志，
+                                 //D — 十进制运算标志， B — 软件中断指令标志， V — 溢出标志，N — 负数标志
+                                 // Flags
     private byte carry_flag;
     private byte zero_flag;
     private byte interrupt_flag;
@@ -26,506 +25,494 @@ public class CPU
     private byte brk_flag;
     private byte overflow_flag;
     private byte sign_flag;
-    
+
     private long tick_count;// CPU时钟
-    public long total_cycles = 0;// uint
-    
+
     private byte currentOpcode;//临时变量，记录当前操作
 
-    public CPU(MotherBoard NesEmu) {
-        _NesEmu = NesEmu;
-        a_register = 0;
-        x_index_register = 0;
-        y_index_register = 0;
-        sp_register = (byte) 0xff;
+    public byte ReadBus8(int address) {
+        return mb.ReadBus8(address);
     }
 
-    //运行CPU，并进入死循环
-    public void RunProcessor() throws InterruptedException {
-        while (!_NesEmu.isQuitting) {
-            currentOpcode = _NesEmu.ReadBus8(pc_register);  //读取操作符
-            if (!_NesEmu.isPaused) {
-                // #region switch currentOpcode 各操作跳转
-                switch (currentOpcode) {
-                    case ((byte) 0x00):
-                        OpcodeBRK();
-                        break;
-                    case ((byte) 0x01):
-                        OpcodeORA();
-                        break;
-                    case ((byte) 0x05):
-                        OpcodeORA();
-                        break;
-                    case ((byte) 0x06):
-                        OpcodeASL();
-                        break;
-                    case ((byte) 0x08):
-                        OpcodePHP();
-                        break;
-                    case ((byte) 0x09):
-                        OpcodeORA();
-                        break;
-                    case ((byte) 0x0a):
-                        OpcodeASL();
-                        break;
-                    case ((byte) 0x0d):
-                        OpcodeORA();
-                        break;
-                    case ((byte) 0x0e):
-                        OpcodeASL();
-                        break;
-                    case ((byte) 0x10):
-                        OpcodeBPL();
-                        break;
-                    case ((byte) 0x11):
-                        OpcodeORA();
-                        break;
-                    case ((byte) 0x15):
-                        OpcodeORA();
-                        break;
-                    case ((byte) 0x16):
-                        OpcodeASL();
-                        break;
-                    case ((byte) 0x18):
-                        OpcodeCLC();
-                        break;
-                    case ((byte) 0x19):
-                        OpcodeORA();
-                        break;
-                    case ((byte) 0x1d):
-                        OpcodeORA();
-                        break;
-                    case ((byte) 0x1e):
-                        OpcodeASL();
-                        break;
-                    case ((byte) 0x20):
-                        OpcodeJSR();
-                        break;
-                    case ((byte) 0x21):
-                        OpcodeAND();
-                        break;
-                    case ((byte) 0x24):
-                        OpcodeBIT();
-                        break;
-                    case ((byte) 0x25):
-                        OpcodeAND();
-                        break;
-                    case ((byte) 0x26):
-                        OpcodeROL();
-                        break;
-                    case ((byte) 0x28):
-                        OpcodePLP();
-                        break;
-                    case ((byte) 0x29):
-                        OpcodeAND();
-                        break;
-                    case ((byte) 0x2a):
-                        OpcodeROL();
-                        break;
-                    case ((byte) 0x2c):
-                        OpcodeBIT();
-                        break;
-                    case ((byte) 0x2d):
-                        OpcodeAND();
-                        break;
-                    case ((byte) 0x2e):
-                        OpcodeROL();
-                        break;
-                    case ((byte) 0x30):
-                        OpcodeBMI();
-                        break;
-                    case ((byte) 0x31):
-                        OpcodeAND();
-                        break;
-                    case ((byte) 0x32):
-                        OpcodeNOP();
-                        break;
-                    case ((byte) 0x33):
-                        OpcodeNOP();
-                        break;
-                    case ((byte) 0x34):
-                        OpcodeNOP();
-                        break;
-                    case ((byte) 0x35):
-                        OpcodeAND();
-                        break;
-                    case ((byte) 0x36):
-                        OpcodeROL();
-                        break;
-                    case ((byte) 0x38):
-                        OpcodeSEC();
-                        break;
-                    case ((byte) 0x39):
-                        OpcodeAND();
-                        break;
-                    case ((byte) 0x3d):
-                        OpcodeAND();
-                        break;
-                    case ((byte) 0x3e):
-                        OpcodeROL();
-                        break;
-                    case ((byte) 0x40):
-                        OpcodeRTI();
-                        break;
-                    case ((byte) 0x41):
-                        OpcodeEOR();
-                        break;
-                    case ((byte) 0x45):
-                        OpcodeEOR();
-                        break;
-                    case ((byte) 0x46):
-                        OpcodeLSR();
-                        break;
-                    case ((byte) 0x48):
-                        OpcodePHA();
-                        break;
-                    case ((byte) 0x49):
-                        OpcodeEOR();
-                        break;
-                    case ((byte) 0x4a):
-                        OpcodeLSR();
-                        break;
-                    case ((byte) 0x4c):
-                        OpcodeJMP();
-                        break;
-                    case ((byte) 0x4d):
-                        OpcodeEOR();
-                        break;
-                    case ((byte) 0x4e):
-                        OpcodeLSR();
-                        break;
-                    case ((byte) 0x50):
-                        OpcodeBVC();
-                        break;
-                    case ((byte) 0x51):
-                        OpcodeEOR();
-                        break;
-                    case ((byte) 0x55):
-                        OpcodeEOR();
-                        break;
-                    case ((byte) 0x56):
-                        OpcodeLSR();
-                        break;
-                    case ((byte) 0x58):
-                        OpcodeCLI();
-                        break;
-                    case ((byte) 0x59):
-                        OpcodeEOR();
-                        break;
-                    case ((byte) 0x5d):
-                        OpcodeEOR();
-                        break;
-                    case ((byte) 0x5e):
-                        OpcodeLSR();
-                        break;
-                    case ((byte) 0x60):
-                        OpcodeRTS();
-                        break;
-                    case ((byte) 0x61):
-                        OpcodeADC();
-                        break;
-                    case ((byte) 0x65):
-                        OpcodeADC();
-                        break;
-                    case ((byte) 0x66):
-                        OpcodeROR();
-                        break;
-                    case ((byte) 0x68):
-                        OpcodePLA();
-                        break;
-                    case ((byte) 0x69):
-                        OpcodeADC();
-                        break;
-                    case ((byte) 0x6a):
-                        OpcodeROR();
-                        break;
-                    case ((byte) 0x6c):
-                        OpcodeJMP();
-                        break;
-                    case ((byte) 0x6d):
-                        OpcodeADC();
-                        break;
-                    case ((byte) 0x6e):
-                        OpcodeROR();
-                        break;
-                    case ((byte) 0x70):
-                        OpcodeBVS();
-                        break;
-                    case ((byte) 0x71):
-                        OpcodeADC();
-                        break;
-                    case ((byte) 0x75):
-                        OpcodeADC();
-                        break;
-                    case ((byte) 0x76):
-                        OpcodeROR();
-                        break;
-                    case ((byte) 0x78):
-                        OpcodeSEI();
-                        break;
-                    case ((byte) 0x79):
-                        OpcodeADC();
-                        break;
-                    case ((byte) 0x7d):
-                        OpcodeADC();
-                        break;
-                    case ((byte) 0x7e):
-                        OpcodeROR();
-                        break;
-                    case ((byte) 0x81):
-                        OpcodeSTA();
-                        break;
-                    case ((byte) 0x84):
-                        OpcodeSTY();
-                        break;
-                    case ((byte) 0x85):
-                        OpcodeSTA();
-                        break;
-                    case ((byte) 0x86):
-                        OpcodeSTX();
-                        break;
-                    case ((byte) 0x88):
-                        OpcodeDEY();
-                        break;
-                    case ((byte) 0x8a):
-                        OpcodeTXA();
-                        break;
-                    case ((byte) 0x8c):
-                        OpcodeSTY();
-                        break;
-                    case ((byte) 0x8d):
-                        OpcodeSTA();
-                        break;
-                    case ((byte) 0x8e):
-                        OpcodeSTX();
-                        break;
-                    case ((byte) 0x90):
-                        OpcodeBCC();
-                        break;
-                    case ((byte) 0x91):
-                        OpcodeSTA();
-                        break;
-                    case ((byte) 0x94):
-                        OpcodeSTY();
-                        break;
-                    case ((byte) 0x95):
-                        OpcodeSTA();
-                        break;
-                    case ((byte) 0x96):
-                        OpcodeSTX();
-                        break;
-                    case ((byte) 0x98):
-                        OpcodeTYA();
-                        break;
-                    case ((byte) 0x99):
-                        OpcodeSTA();
-                        break;
-                    case ((byte) 0x9a):
-                        OpcodeTXS();
-                        break;
-                    case ((byte) 0x9d):
-                        OpcodeSTA();
-                        break;
-                    case ((byte) 0xa0):
-                        OpcodeLDY();
-                        break;
-                    case ((byte) 0xa1):
-                        OpcodeLDA();
-                        break;
-                    case ((byte) 0xa2):
-                        OpcodeLDX();
-                        break;
-                    case ((byte) 0xa4):
-                        OpcodeLDY();
-                        break;
-                    case ((byte) 0xa5):
-                        OpcodeLDA();
-                        break;
-                    case ((byte) 0xa6):
-                        OpcodeLDX();
-                        break;
-                    case ((byte) 0xa8):
-                        OpcodeTAY();
-                        break;
-                    case ((byte) 0xa9):
-                        OpcodeLDA();
-                        break;
-                    case ((byte) 0xaa):
-                        OpcodeTAX();
-                        break;
-                    case ((byte) 0xac):
-                        OpcodeLDY();
-                        break;
-                    case ((byte) 0xad):
-                        OpcodeLDA();
-                        break;
-                    case ((byte) 0xae):
-                        OpcodeLDX();
-                        break;
-                    case ((byte) 0xb0):
-                        OpcodeBCS();
-                        break;
-                    case ((byte) 0xb1):
-                        OpcodeLDA();
-                        break;
-                    case ((byte) 0xb4):
-                        OpcodeLDY();
-                        break;
-                    case ((byte) 0xb5):
-                        OpcodeLDA();
-                        break;
-                    case ((byte) 0xb6):
-                        OpcodeLDX();
-                        break;
-                    case ((byte) 0xb8):
-                        OpcodeCLV();
-                        break;
-                    case ((byte) 0xb9):
-                        OpcodeLDA();
-                        break;
-                    case ((byte) 0xba):
-                        OpcodeTSX();
-                        break;
-                    case ((byte) 0xbc):
-                        OpcodeLDY();
-                        break;
-                    case ((byte) 0xbd):
-                        OpcodeLDA();
-                        break;
-                    case ((byte) 0xbe):
-                        OpcodeLDX();
-                        break;
-                    case ((byte) 0xc0):
-                        OpcodeCPY();
-                        break;
-                    case ((byte) 0xc1):
-                        OpcodeCMP();
-                        break;
-                    case ((byte) 0xc4):
-                        OpcodeCPY();
-                        break;
-                    case ((byte) 0xc5):
-                        OpcodeCMP();
-                        break;
-                    case ((byte) 0xc6):
-                        OpcodeDEC();
-                        break;
-                    case ((byte) 0xc8):
-                        OpcodeINY();
-                        break;
-                    case ((byte) 0xc9):
-                        OpcodeCMP();
-                        break;
-                    case ((byte) 0xca):
-                        OpcodeDEX();
-                        break;
-                    case ((byte) 0xcc):
-                        OpcodeCPY();
-                        break;
-                    case ((byte) 0xcd):
-                        OpcodeCMP();
-                        break;
-                    case ((byte) 0xce):
-                        OpcodeDEC();
-                        break;
-                    case ((byte) 0xd0):
-                        OpcodeBNE();
-                        break;
-                    case ((byte) 0xd1):
-                        OpcodeCMP();
-                        break;
-                    case ((byte) 0xd5):
-                        OpcodeCMP();
-                        break;
-                    case ((byte) 0xd6):
-                        OpcodeDEC();
-                        break;
-                    case ((byte) 0xd8):
-                        OpcodeCLD();
-                        break;
-                    case ((byte) 0xd9):
-                        OpcodeCMP();
-                        break;
-                    case ((byte) 0xdd):
-                        OpcodeCMP();
-                        break;
-                    case ((byte) 0xde):
-                        OpcodeDEC();
-                        break;
-                    case ((byte) 0xe0):
-                        OpcodeCPX();
-                        break;
-                    case ((byte) 0xe1):
-                        OpcodeSBC();
-                        break;
-                    case ((byte) 0xe4):
-                        OpcodeCPX();
-                        break;
-                    case ((byte) 0xe5):
-                        OpcodeSBC();
-                        break;
-                    case ((byte) 0xe6):
-                        OpcodeINC();
-                        break;
-                    case ((byte) 0xe8):
-                        OpcodeINX();
-                        break;
-                    case ((byte) 0xe9):
-                        OpcodeSBC();
-                        break;
-                    case ((byte) 0xec):
-                        OpcodeCPX();
-                        break;
-                    case ((byte) 0xed):
-                        OpcodeSBC();
-                        break;
-                    case ((byte) 0xee):
-                        OpcodeINC();
-                        break;
-                    case ((byte) 0xf0):
-                        OpcodeBEQ();
-                        break;
-                    case ((byte) 0xf1):
-                        OpcodeSBC();
-                        break;
-                    case ((byte) 0xf5):
-                        OpcodeSBC();
-                        break;
-                    case ((byte) 0xf6):
-                        OpcodeINC();
-                        break;
-                    case ((byte) 0xf8):
-                        OpcodeSED();
-                        break;
-                    case ((byte) 0xf9):
-                        OpcodeSBC();
-                        break;
-                    case ((byte) 0xfd):
-                        OpcodeSBC();
-                        break;
-                    case ((byte) 0xfe):
-                        OpcodeINC();
-                        break;
-                    default:
-                        OpcodeNOP();
-                        break;
-                }
-                // #endregion
-                 _NesEmu.apu.Play();
+    public void WriteBus8(int address, byte data) {
+        mb.WriteBus8(address, data);
+    }
+
+    public int ReadBus16(int address) {
+        byte dt1 = ReadBus8(address);
+        byte dt2 = ReadBus8(address + 1);
+        int data = ((dt2 & 0xFF) << 8) + (dt1 & 0xff);// java中的byte是补码形式，计算时需要与0xff才正确
+        return data;
+    }
+
+    public void RunProcessor() {
+        while (!isQuitting) {
+            currentOpcode = ReadBus8(pc_register);//读指令
+            switch (currentOpcode) {
+                case ((byte) 0x00):
+                    OpcodeBRK();
+                    break;
+                case ((byte) 0x01):
+                    OpcodeORA();
+                    break;
+                case ((byte) 0x05):
+                    OpcodeORA();
+                    break;
+                case ((byte) 0x06):
+                    OpcodeASL();
+                    break;
+                case ((byte) 0x08):
+                    OpcodePHP();
+                    break;
+                case ((byte) 0x09):
+                    OpcodeORA();
+                    break;
+                case ((byte) 0x0a):
+                    OpcodeASL();
+                    break;
+                case ((byte) 0x0d):
+                    OpcodeORA();
+                    break;
+                case ((byte) 0x0e):
+                    OpcodeASL();
+                    break;
+                case ((byte) 0x10):
+                    OpcodeBPL();
+                    break;
+                case ((byte) 0x11):
+                    OpcodeORA();
+                    break;
+                case ((byte) 0x15):
+                    OpcodeORA();
+                    break;
+                case ((byte) 0x16):
+                    OpcodeASL();
+                    break;
+                case ((byte) 0x18):
+                    OpcodeCLC();
+                    break;
+                case ((byte) 0x19):
+                    OpcodeORA();
+                    break;
+                case ((byte) 0x1d):
+                    OpcodeORA();
+                    break;
+                case ((byte) 0x1e):
+                    OpcodeASL();
+                    break;
+                case ((byte) 0x20):
+                    OpcodeJSR();
+                    break;
+                case ((byte) 0x21):
+                    OpcodeAND();
+                    break;
+                case ((byte) 0x24):
+                    OpcodeBIT();
+                    break;
+                case ((byte) 0x25):
+                    OpcodeAND();
+                    break;
+                case ((byte) 0x26):
+                    OpcodeROL();
+                    break;
+                case ((byte) 0x28):
+                    OpcodePLP();
+                    break;
+                case ((byte) 0x29):
+                    OpcodeAND();
+                    break;
+                case ((byte) 0x2a):
+                    OpcodeROL();
+                    break;
+                case ((byte) 0x2c):
+                    OpcodeBIT();
+                    break;
+                case ((byte) 0x2d):
+                    OpcodeAND();
+                    break;
+                case ((byte) 0x2e):
+                    OpcodeROL();
+                    break;
+                case ((byte) 0x30):
+                    OpcodeBMI();
+                    break;
+                case ((byte) 0x31):
+                    OpcodeAND();
+                    break;
+                case ((byte) 0x32):
+                    OpcodeNOP();
+                    break;
+                case ((byte) 0x33):
+                    OpcodeNOP();
+                    break;
+                case ((byte) 0x34):
+                    OpcodeNOP();
+                    break;
+                case ((byte) 0x35):
+                    OpcodeAND();
+                    break;
+                case ((byte) 0x36):
+                    OpcodeROL();
+                    break;
+                case ((byte) 0x38):
+                    OpcodeSEC();
+                    break;
+                case ((byte) 0x39):
+                    OpcodeAND();
+                    break;
+                case ((byte) 0x3d):
+                    OpcodeAND();
+                    break;
+                case ((byte) 0x3e):
+                    OpcodeROL();
+                    break;
+                case ((byte) 0x40):
+                    OpcodeRTI();
+                    break;
+                case ((byte) 0x41):
+                    OpcodeEOR();
+                    break;
+                case ((byte) 0x45):
+                    OpcodeEOR();
+                    break;
+                case ((byte) 0x46):
+                    OpcodeLSR();
+                    break;
+                case ((byte) 0x48):
+                    OpcodePHA();
+                    break;
+                case ((byte) 0x49):
+                    OpcodeEOR();
+                    break;
+                case ((byte) 0x4a):
+                    OpcodeLSR();
+                    break;
+                case ((byte) 0x4c):
+                    OpcodeJMP();
+                    break;
+                case ((byte) 0x4d):
+                    OpcodeEOR();
+                    break;
+                case ((byte) 0x4e):
+                    OpcodeLSR();
+                    break;
+                case ((byte) 0x50):
+                    OpcodeBVC();
+                    break;
+                case ((byte) 0x51):
+                    OpcodeEOR();
+                    break;
+                case ((byte) 0x55):
+                    OpcodeEOR();
+                    break;
+                case ((byte) 0x56):
+                    OpcodeLSR();
+                    break;
+                case ((byte) 0x58):
+                    OpcodeCLI();
+                    break;
+                case ((byte) 0x59):
+                    OpcodeEOR();
+                    break;
+                case ((byte) 0x5d):
+                    OpcodeEOR();
+                    break;
+                case ((byte) 0x5e):
+                    OpcodeLSR();
+                    break;
+                case ((byte) 0x60):
+                    OpcodeRTS();
+                    break;
+                case ((byte) 0x61):
+                    OpcodeADC();
+                    break;
+                case ((byte) 0x65):
+                    OpcodeADC();
+                    break;
+                case ((byte) 0x66):
+                    OpcodeROR();
+                    break;
+                case ((byte) 0x68):
+                    OpcodePLA();
+                    break;
+                case ((byte) 0x69):
+                    OpcodeADC();
+                    break;
+                case ((byte) 0x6a):
+                    OpcodeROR();
+                    break;
+                case ((byte) 0x6c):
+                    OpcodeJMP();
+                    break;
+                case ((byte) 0x6d):
+                    OpcodeADC();
+                    break;
+                case ((byte) 0x6e):
+                    OpcodeROR();
+                    break;
+                case ((byte) 0x70):
+                    OpcodeBVS();
+                    break;
+                case ((byte) 0x71):
+                    OpcodeADC();
+                    break;
+                case ((byte) 0x75):
+                    OpcodeADC();
+                    break;
+                case ((byte) 0x76):
+                    OpcodeROR();
+                    break;
+                case ((byte) 0x78):
+                    OpcodeSEI();
+                    break;
+                case ((byte) 0x79):
+                    OpcodeADC();
+                    break;
+                case ((byte) 0x7d):
+                    OpcodeADC();
+                    break;
+                case ((byte) 0x7e):
+                    OpcodeROR();
+                    break;
+                case ((byte) 0x81):
+                    OpcodeSTA();
+                    break;
+                case ((byte) 0x84):
+                    OpcodeSTY();
+                    break;
+                case ((byte) 0x85):
+                    OpcodeSTA();
+                    break;
+                case ((byte) 0x86):
+                    OpcodeSTX();
+                    break;
+                case ((byte) 0x88):
+                    OpcodeDEY();
+                    break;
+                case ((byte) 0x8a):
+                    OpcodeTXA();
+                    break;
+                case ((byte) 0x8c):
+                    OpcodeSTY();
+                    break;
+                case ((byte) 0x8d):
+                    OpcodeSTA();
+                    break;
+                case ((byte) 0x8e):
+                    OpcodeSTX();
+                    break;
+                case ((byte) 0x90):
+                    OpcodeBCC();
+                    break;
+                case ((byte) 0x91):
+                    OpcodeSTA();
+                    break;
+                case ((byte) 0x94):
+                    OpcodeSTY();
+                    break;
+                case ((byte) 0x95):
+                    OpcodeSTA();
+                    break;
+                case ((byte) 0x96):
+                    OpcodeSTX();
+                    break;
+                case ((byte) 0x98):
+                    OpcodeTYA();
+                    break;
+                case ((byte) 0x99):
+                    OpcodeSTA();
+                    break;
+                case ((byte) 0x9a):
+                    OpcodeTXS();
+                    break;
+                case ((byte) 0x9d):
+                    OpcodeSTA();
+                    break;
+                case ((byte) 0xa0):
+                    OpcodeLDY();
+                    break;
+                case ((byte) 0xa1):
+                    OpcodeLDA();
+                    break;
+                case ((byte) 0xa2):
+                    OpcodeLDX();
+                    break;
+                case ((byte) 0xa4):
+                    OpcodeLDY();
+                    break;
+                case ((byte) 0xa5):
+                    OpcodeLDA();
+                    break;
+                case ((byte) 0xa6):
+                    OpcodeLDX();
+                    break;
+                case ((byte) 0xa8):
+                    OpcodeTAY();
+                    break;
+                case ((byte) 0xa9):
+                    OpcodeLDA();
+                    break;
+                case ((byte) 0xaa):
+                    OpcodeTAX();
+                    break;
+                case ((byte) 0xac):
+                    OpcodeLDY();
+                    break;
+                case ((byte) 0xad):
+                    OpcodeLDA();
+                    break;
+                case ((byte) 0xae):
+                    OpcodeLDX();
+                    break;
+                case ((byte) 0xb0):
+                    OpcodeBCS();
+                    break;
+                case ((byte) 0xb1):
+                    OpcodeLDA();
+                    break;
+                case ((byte) 0xb4):
+                    OpcodeLDY();
+                    break;
+                case ((byte) 0xb5):
+                    OpcodeLDA();
+                    break;
+                case ((byte) 0xb6):
+                    OpcodeLDX();
+                    break;
+                case ((byte) 0xb8):
+                    OpcodeCLV();
+                    break;
+                case ((byte) 0xb9):
+                    OpcodeLDA();
+                    break;
+                case ((byte) 0xba):
+                    OpcodeTSX();
+                    break;
+                case ((byte) 0xbc):
+                    OpcodeLDY();
+                    break;
+                case ((byte) 0xbd):
+                    OpcodeLDA();
+                    break;
+                case ((byte) 0xbe):
+                    OpcodeLDX();
+                    break;
+                case ((byte) 0xc0):
+                    OpcodeCPY();
+                    break;
+                case ((byte) 0xc1):
+                    OpcodeCMP();
+                    break;
+                case ((byte) 0xc4):
+                    OpcodeCPY();
+                    break;
+                case ((byte) 0xc5):
+                    OpcodeCMP();
+                    break;
+                case ((byte) 0xc6):
+                    OpcodeDEC();
+                    break;
+                case ((byte) 0xc8):
+                    OpcodeINY();
+                    break;
+                case ((byte) 0xc9):
+                    OpcodeCMP();
+                    break;
+                case ((byte) 0xca):
+                    OpcodeDEX();
+                    break;
+                case ((byte) 0xcc):
+                    OpcodeCPY();
+                    break;
+                case ((byte) 0xcd):
+                    OpcodeCMP();
+                    break;
+                case ((byte) 0xce):
+                    OpcodeDEC();
+                    break;
+                case ((byte) 0xd0):
+                    OpcodeBNE();
+                    break;
+                case ((byte) 0xd1):
+                    OpcodeCMP();
+                    break;
+                case ((byte) 0xd5):
+                    OpcodeCMP();
+                    break;
+                case ((byte) 0xd6):
+                    OpcodeDEC();
+                    break;
+                case ((byte) 0xd8):
+                    OpcodeCLD();
+                    break;
+                case ((byte) 0xd9):
+                    OpcodeCMP();
+                    break;
+                case ((byte) 0xdd):
+                    OpcodeCMP();
+                    break;
+                case ((byte) 0xde):
+                    OpcodeDEC();
+                    break;
+                case ((byte) 0xe0):
+                    OpcodeCPX();
+                    break;
+                case ((byte) 0xe1):
+                    OpcodeSBC();
+                    break;
+                case ((byte) 0xe4):
+                    OpcodeCPX();
+                    break;
+                case ((byte) 0xe5):
+                    OpcodeSBC();
+                    break;
+                case ((byte) 0xe6):
+                    OpcodeINC();
+                    break;
+                case ((byte) 0xe8):
+                    OpcodeINX();
+                    break;
+                case ((byte) 0xe9):
+                    OpcodeSBC();
+                    break;
+                case ((byte) 0xec):
+                    OpcodeCPX();
+                    break;
+                case ((byte) 0xed):
+                    OpcodeSBC();
+                    break;
+                case ((byte) 0xee):
+                    OpcodeINC();
+                    break;
+                case ((byte) 0xf0):
+                    OpcodeBEQ();
+                    break;
+                case ((byte) 0xf1):
+                    OpcodeSBC();
+                    break;
+                case ((byte) 0xf5):
+                    OpcodeSBC();
+                    break;
+                case ((byte) 0xf6):
+                    OpcodeINC();
+                    break;
+                case ((byte) 0xf8):
+                    OpcodeSED();
+                    break;
+                case ((byte) 0xf9):
+                    OpcodeSBC();
+                    break;
+                case ((byte) 0xfd):
+                    OpcodeSBC();
+                    break;
+                case ((byte) 0xfe):
+                    OpcodeINC();
+                    break;
+                default:
+                    OpcodeNOP();
+                    break;
             }
-            else {
-                 _NesEmu.apu.Pause();
-                Thread.sleep(100);
-            }
-            total_cycles += tick_count;
-            if (tick_count >= _NesEmu.Ticks_Per_Scanline) {
-                if (_NesEmu.RenderNextScanline()) {
-                    Push16(pc_register);
-                    PushStatus();
-                    pc_register = _NesEmu.ReadBus16(0xFFFA);
-                }
-                tick_count = tick_count - _NesEmu.Ticks_Per_Scanline;
-            }
+            tick_count = mb.CPUTick(tick_count);
         }
     }
 
@@ -536,21 +523,21 @@ public class CPU
         newAddress += (int) (c & 0xFF);
         return (int) newAddress;
     }
-    
+
     //#region 堆栈操作
     private void Push8(byte data) {
-        _NesEmu.WriteBus8((0x100 + (sp_register & 0xff)), data);
+        WriteBus8((0x100 + (sp_register & 0xff)), data);
         sp_register = (byte) ((sp_register & 0xff) - 1);
     }
 
-    private void Push16(int data) {
+    public void Push16(int data) {
         Push8((byte) (data >> 8));
         Push8((byte) (data & 0xff));
     }
 
     private byte Pull8() {
         sp_register = (byte) ((sp_register & 0xFF) + 1);
-        return _NesEmu.ReadBus8((0x100 + (sp_register & 0xFF)));
+        return ReadBus8((0x100 + (sp_register & 0xFF)));
     }
 
     private int Pull16() {
@@ -565,8 +552,8 @@ public class CPU
 
         return fulldata;
     }
-    
-    private void PushStatus() {
+
+    public void PushStatus() {
         p_register = 0;
 
         if (sign_flag == 1)
@@ -639,8 +626,8 @@ public class CPU
     // Opcodes
     public void OpcodeADC() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
 
         // Decode
@@ -670,7 +657,7 @@ public class CPU
                 valueholder = IndirectY(arg1, true);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 break;
         }
 
@@ -734,15 +721,15 @@ public class CPU
                 pc_register += 2;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 break;
         }
     }
 
     public void OpcodeAND() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
 
         switch (currentOpcode) {
@@ -771,7 +758,7 @@ public class CPU
                 valueholder = IndirectY(arg1, false);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken AND");
                 break;
         }
@@ -821,7 +808,7 @@ public class CPU
                 pc_register += 2;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken AND");
                 break;
         }
@@ -829,8 +816,8 @@ public class CPU
 
     public void OpcodeASL() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
 
         switch (currentOpcode) {
@@ -850,7 +837,7 @@ public class CPU
                 valueholder = AbsoluteX(arg1, arg2, false);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken ASL");
                 break;
         }
@@ -900,14 +887,14 @@ public class CPU
                 pc_register += 3;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken ASL");
                 break;
         }
     }
 
     public void OpcodeBCC() {
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
+        byte arg1 = ReadBus8((pc_register + 1));
 
         // FIX ME: Branching to a new page takes a 1 tick penalty
         if (carry_flag == 0) {
@@ -925,7 +912,7 @@ public class CPU
     }
 
     public void OpcodeBCS() {
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
+        byte arg1 = ReadBus8((pc_register + 1));
 
         // FIX ME: Branching to a new page takes a 1 tick penalty
         if (carry_flag == 1) {
@@ -943,7 +930,7 @@ public class CPU
     }
 
     public void OpcodeBEQ() {
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
+        byte arg1 = ReadBus8((pc_register + 1));
 
         // FIX ME: Branching to a new page takes a 1 tick penalty
         if (zero_flag == 1) {
@@ -962,8 +949,8 @@ public class CPU
 
     public void OpcodeBIT() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
 
         switch (currentOpcode) {
@@ -974,7 +961,7 @@ public class CPU
                 valueholder = Absolute(arg1, arg2);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken BIT");
                 break;
         }
@@ -1004,14 +991,14 @@ public class CPU
                 pc_register += 3;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken BIT");
                 break;
         }
     }
 
     public void OpcodeBMI() {
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
+        byte arg1 = ReadBus8((pc_register + 1));
 
         // FIX ME: Branching to a new page takes a 1 tick penalty
         if (sign_flag == 1) {
@@ -1034,7 +1021,7 @@ public class CPU
         // FIX ME: All these are set "wrong" to match the old emulator
         // FIXME: They should probably all be corrected when debugging is finished
         if (zero_flag == 0) {
-            arg1 = _NesEmu.ReadBus8((pc_register + 1));
+            arg1 = ReadBus8((pc_register + 1));
             pc_register += 2;
             if ((pc_register & 0xFF00) != ((pc_register + arg1 + 2) & 0xFF00)) {
                 tick_count += 1;
@@ -1049,7 +1036,7 @@ public class CPU
     }
 
     public void OpcodeBPL() {
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
+        byte arg1 = ReadBus8((pc_register + 1));
 
         // FIX ME: Branching to a new page takes a 1 tick penalty
         if (sign_flag == 0) {
@@ -1072,12 +1059,12 @@ public class CPU
         brk_flag = 1;
         PushStatus();
         interrupt_flag = 1;
-        pc_register = _NesEmu.ReadBus16(0xfffe);
+        pc_register = ReadBus16(0xfffe);
         tick_count += 7;
     }
 
     public void OpcodeBVC() {
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
+        byte arg1 = ReadBus8((pc_register + 1));
 
         // FIX ME: Branching to a new page takes a 1 tick penalty
         if (overflow_flag == 0) {
@@ -1095,7 +1082,7 @@ public class CPU
     }
 
     public void OpcodeBVS() {
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
+        byte arg1 = ReadBus8((pc_register + 1));
 
         // FIX ME: Branching to a new page takes a 1 tick penalty
         if (overflow_flag == 1) {
@@ -1138,8 +1125,8 @@ public class CPU
 
     public void OpcodeCMP() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
 
         switch (currentOpcode) {
@@ -1168,7 +1155,7 @@ public class CPU
                 valueholder = IndirectY(arg1, true);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken CMP");
                 break;
         }
@@ -1224,7 +1211,7 @@ public class CPU
                 pc_register += 2;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken CMP");
                 break;
         }
@@ -1232,8 +1219,8 @@ public class CPU
 
     public void OpcodeCPX() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
 
         switch (currentOpcode) {
@@ -1247,7 +1234,7 @@ public class CPU
                 valueholder = Absolute(arg1, arg2);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken CPX");
                 break;
         }
@@ -1283,7 +1270,7 @@ public class CPU
                 pc_register += 3;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken CPX");
                 break;
         }
@@ -1291,8 +1278,8 @@ public class CPU
 
     public void OpcodeCPY() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
 
         switch (currentOpcode) {
@@ -1306,7 +1293,7 @@ public class CPU
                 valueholder = Absolute(arg1, arg2);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken CPY");
                 break;
         }
@@ -1342,7 +1329,7 @@ public class CPU
                 pc_register += 3;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken CPY");
                 break;
         }
@@ -1350,8 +1337,8 @@ public class CPU
 
     public void OpcodeDEC() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
 
         switch (currentOpcode) {
@@ -1369,7 +1356,7 @@ public class CPU
                 valueholder = AbsoluteX(arg1, arg2, false);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken DEC");
                 break;
         }
@@ -1412,7 +1399,7 @@ public class CPU
                 pc_register += 3;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken DEC");
                 break;
         }
@@ -1454,8 +1441,8 @@ public class CPU
 
     public void OpcodeEOR() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
 
         switch (currentOpcode) {
@@ -1484,7 +1471,7 @@ public class CPU
                 valueholder = IndirectY(arg1, true);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken EOR");
                 break;
         }
@@ -1534,7 +1521,7 @@ public class CPU
                 pc_register += 2;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken EOR");
                 break;
         }
@@ -1542,8 +1529,8 @@ public class CPU
 
     public void OpcodeINC() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
 
         switch (currentOpcode) {
@@ -1561,7 +1548,7 @@ public class CPU
                 valueholder = AbsoluteX(arg1, arg2, false);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken INC");
                 break;
         }
@@ -1603,7 +1590,7 @@ public class CPU
                 pc_register += 3;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken INC");
                 break;
         }
@@ -1646,7 +1633,7 @@ public class CPU
     public void OpcodeJMP() {
         // byte arg1 = myEngine.ReadMemory8((pc_register + 1));
         // byte arg2 = myEngine.ReadMemory8((pc_register + 2));
-        int myAddress = _NesEmu.ReadBus16((pc_register + 1));
+        int myAddress = ReadBus16((pc_register + 1));
 
         switch (currentOpcode) {
             case ((byte) 0x4c): // pc_register = MakeAddress(arg1, arg2);
@@ -1655,20 +1642,20 @@ public class CPU
                 tick_count += 3;
                 break;
             case ((byte) 0x6c): // pc_register = myEngine.ReadBus16(MakeAddress(arg1, arg2));
-                pc_register = _NesEmu.ReadBus16(myAddress);
+                pc_register = ReadBus16(myAddress);
                 // System.out.println("Jumping to: {0:x}", pc_register);
                 tick_count += 5;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken JMP");
                 break;
         }
     }
 
     public void OpcodeJSR() {
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         Push16((pc_register + 2));
         pc_register = MakeAddress(arg1, arg2);
         tick_count += 6;
@@ -1676,7 +1663,7 @@ public class CPU
 
     public void OpcodeLDA() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
+        byte arg1 = ReadBus8((pc_register + 1));
         byte arg2;
         switch (currentOpcode) {
             case ((byte) 0xA9):
@@ -1695,20 +1682,20 @@ public class CPU
                 pc_register += 2;
                 break;
             case ((byte) 0xAD):
-                arg2 = _NesEmu.ReadBus8((pc_register + 2));
+                arg2 = ReadBus8((pc_register + 2));
                 a_register = Absolute(arg1, arg2);
                 tick_count += 4;
                 pc_register += 3;
                 break;
             case ((byte) 0xBD):
-                arg2 = _NesEmu.ReadBus8((pc_register + 2));
+                arg2 = ReadBus8((pc_register + 2));
                 a_register = AbsoluteX(arg1, arg2, true); // CHECK FOR PAGE BOUNDARIES
 
                 tick_count += 4;
                 pc_register += 3;
                 break;
             case ((byte) 0xB9):
-                arg2 = _NesEmu.ReadBus8((pc_register + 2));
+                arg2 = ReadBus8((pc_register + 2));
                 a_register = AbsoluteY(arg1, arg2, true); // CHECK FOR PAGE BOUNDARIES
                 tick_count += 4;
                 pc_register += 3;
@@ -1724,7 +1711,7 @@ public class CPU
                 pc_register += 2;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken LDA");
                 break;
         }
@@ -1742,8 +1729,8 @@ public class CPU
 
     public void OpcodeLDX() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         switch (currentOpcode) {
             case ((byte) 0xA2):
                 x_index_register = arg1;
@@ -1771,7 +1758,7 @@ public class CPU
                 pc_register += 3;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken LDX");
                 break;
         }
@@ -1789,8 +1776,8 @@ public class CPU
 
     public void OpcodeLDY() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         // byte valueholder = 0xff;
         switch (currentOpcode) {
             case ((byte) 0xA0):
@@ -1819,7 +1806,7 @@ public class CPU
                 pc_register += 3;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken LDY");
                 break;
         }
@@ -1837,8 +1824,8 @@ public class CPU
 
     public void OpcodeLSR() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
 
         switch (currentOpcode) {
@@ -1858,7 +1845,7 @@ public class CPU
                 valueholder = AbsoluteX(arg1, arg2, false);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken LSR");
                 break;
         }
@@ -1908,7 +1895,7 @@ public class CPU
                 pc_register += 3;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken LSR");
                 break;
         }
@@ -1925,8 +1912,8 @@ public class CPU
 
     public void OpcodeORA() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
 
         switch (currentOpcode) {
@@ -1955,7 +1942,7 @@ public class CPU
                 valueholder = IndirectY(arg1, false);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken ORA");
                 break;
         }
@@ -2006,7 +1993,7 @@ public class CPU
                 pc_register += 2;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken ORA");
                 break;
         }
@@ -2047,8 +2034,8 @@ public class CPU
 
     public void OpcodeROL() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
         byte bitholder = 0;
 
@@ -2069,7 +2056,7 @@ public class CPU
                 valueholder = AbsoluteX(arg1, arg2, false);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken ROL");
                 break;
         }
@@ -2122,7 +2109,7 @@ public class CPU
                 pc_register += 3;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken ROL");
                 break;
         }
@@ -2130,8 +2117,8 @@ public class CPU
 
     public void OpcodeROR() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
         byte bitholder = 0;
 
@@ -2152,7 +2139,7 @@ public class CPU
                 valueholder = AbsoluteX(arg1, arg2, false);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken ROR");
                 break;
         }
@@ -2208,7 +2195,7 @@ public class CPU
                 pc_register += 3;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken ROR");
                 break;
         }
@@ -2228,8 +2215,8 @@ public class CPU
 
     public void OpcodeSBC() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         byte valueholder = (byte) 0xff;
 
         // Decode
@@ -2259,7 +2246,7 @@ public class CPU
                 valueholder = IndirectY(arg1, false);
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken SBC");
                 break;
         }
@@ -2326,7 +2313,7 @@ public class CPU
                 pc_register += 2;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken SBC");
                 break;
         }
@@ -2352,8 +2339,8 @@ public class CPU
 
     public void OpcodeSTA() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
 
         // Decode
         switch (currentOpcode) {
@@ -2393,7 +2380,7 @@ public class CPU
                 pc_register += 2;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken STA");
                 break;
         }
@@ -2401,8 +2388,8 @@ public class CPU
 
     public void OpcodeSTX() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         // Decode
         switch (currentOpcode) {
             case ((byte) 0x86):
@@ -2421,7 +2408,7 @@ public class CPU
                 pc_register += 3;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken STX");
                 break;
         }
@@ -2429,8 +2416,8 @@ public class CPU
 
     public void OpcodeSTY() {
         // We may not use both, but it's easier to grab them now
-        byte arg1 = _NesEmu.ReadBus8((pc_register + 1));
-        byte arg2 = _NesEmu.ReadBus8((pc_register + 2));
+        byte arg1 = ReadBus8((pc_register + 1));
+        byte arg2 = ReadBus8((pc_register + 2));
         // Decode
         switch (currentOpcode) {
             case ((byte) 0x84):
@@ -2449,7 +2436,7 @@ public class CPU
                 pc_register += 3;
                 break;
             default:
-                _NesEmu.isQuitting = true;
+                isQuitting = true;
                 System.out.println("Broken STY");
                 break;
         }
@@ -2550,19 +2537,19 @@ public class CPU
 
     /// Addressing
     public byte ZeroPage(int c) {
-        return _NesEmu.ReadBus8(c & 0xff);
+        return ReadBus8(c & 0xff);
     }
 
     public byte ZeroPageX(int c) {
-        return _NesEmu.ReadBus8((0xff & (c + x_index_register)));
+        return ReadBus8((0xff & (c + x_index_register)));
     }
 
     public byte ZeroPageY(int c) {
-        return _NesEmu.ReadBus8((0xff & (c + y_index_register)));
+        return ReadBus8((0xff & (c + y_index_register)));
     }
 
     public byte Absolute(byte c, byte d) {
-        return _NesEmu.ReadBus8(MakeAddress(c, d));
+        return ReadBus8(MakeAddress(c, d));
     }
 
     public byte AbsoluteX(byte c, byte d, boolean check_page) {
@@ -2572,7 +2559,7 @@ public class CPU
             }
             ;
         }
-        return _NesEmu.ReadBus8((MakeAddress(c, d) + (x_index_register & 0xff)));
+        return ReadBus8((MakeAddress(c, d) + (x_index_register & 0xff)));
     }
 
     public byte AbsoluteY(byte c, byte d, boolean check_page) {
@@ -2582,53 +2569,52 @@ public class CPU
             }
             ;
         }
-        return _NesEmu.ReadBus8((MakeAddress(c, d) + (y_index_register & 0xff)));
+        return ReadBus8((MakeAddress(c, d) + (y_index_register & 0xff)));
     }
 
     public byte IndirectX(byte c) {
-        return _NesEmu.ReadBus8(_NesEmu.ReadBus16((0xff & ((c & 0xff) + (x_index_register & 0xff)))));
+        return ReadBus8(ReadBus16((0xff & ((c & 0xff) + (x_index_register & 0xff)))));
     }
 
     public byte IndirectY(byte c, boolean check_page) {
         if (check_page) {
-            if ((_NesEmu.ReadBus16(c & 0xff)
-                    & 0xFF00) != ((_NesEmu.ReadBus16(c & 0xff) + (y_index_register & 0xff)) & 0xFF00)) {
+            if ((ReadBus16(c & 0xff) & 0xFF00) != ((ReadBus16(c & 0xff) + (y_index_register & 0xff)) & 0xFF00)) {
                 tick_count += 1;
             }
             ;
         }
-        return _NesEmu.ReadBus8((_NesEmu.ReadBus16(c & 0xff) + (y_index_register & 0xff)));
+        return ReadBus8((ReadBus16(c & 0xff) + (y_index_register & 0xff)));
     }
 
-    public byte ZeroPageWrite(int c, byte data) {
-        return _NesEmu.WriteBus8(c & 0xff, data);
+    public void ZeroPageWrite(int c, byte data) {
+        WriteBus8(c & 0xff, data);
     }
 
-    public byte ZeroPageXWrite(int c, byte data) {
-        return _NesEmu.WriteBus8((0xff & (c + (x_index_register & 0xff))), data);
+    public void ZeroPageXWrite(int c, byte data) {
+        WriteBus8((0xff & (c + (x_index_register & 0xff))), data);
     }
 
-    public byte ZeroPageYWrite(int c, byte data) {
-        return _NesEmu.WriteBus8((0xff & (c + (y_index_register & 0xff))), data);
+    public void ZeroPageYWrite(int c, byte data) {
+        WriteBus8((0xff & (c + (y_index_register & 0xff))), data);
     }
 
-    public byte AbsoluteWrite(byte c, byte d, byte data) {
-        return _NesEmu.WriteBus8(MakeAddress(c, d), data);
+    public void AbsoluteWrite(byte c, byte d, byte data) {
+        WriteBus8(MakeAddress(c, d), data);
     }
 
-    public byte AbsoluteXWrite(byte c, byte d, byte data) {
-        return _NesEmu.WriteBus8((MakeAddress(c, d) + (x_index_register & 0xFF)), data);
+    public void AbsoluteXWrite(byte c, byte d, byte data) {
+        WriteBus8((MakeAddress(c, d) + (x_index_register & 0xFF)), data);
     }
 
-    public byte AbsoluteYWrite(byte c, byte d, byte data) {
-        return _NesEmu.WriteBus8((MakeAddress(c, d) + (y_index_register & 0xFF)), data);
+    public void AbsoluteYWrite(byte c, byte d, byte data) {
+        WriteBus8((MakeAddress(c, d) + (y_index_register & 0xFF)), data);
     }
 
-    public byte IndirectXWrite(byte c, byte data) {
-        return _NesEmu.WriteBus8(_NesEmu.ReadBus16((0xff & (c + (short) (x_index_register & 0xFF)))), data);
+    public void IndirectXWrite(byte c, byte data) {
+        WriteBus8(ReadBus16((0xff & (c + (short) (x_index_register & 0xFF)))), data);
     }
 
-    public byte IndirectYWrite(byte c, byte data) {
-        return _NesEmu.WriteBus8((_NesEmu.ReadBus16(c) + (y_index_register & 0xFF)), data);
+    public void IndirectYWrite(byte c, byte data) {
+        WriteBus8((ReadBus16(c) + (y_index_register & 0xFF)), data);
     }
 }

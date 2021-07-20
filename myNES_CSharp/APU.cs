@@ -119,7 +119,7 @@ namespace AHD.MyNes.Nes
             this.UpdateRegisters(cycles);
             //try
             //{
-            //writePosition = this._buffer.CurrentWritePosition;//
+            writePosition = 100;//this._buffer.CurrentWritePosition;//
             //}
             //catch { return; }
             //if (this._firstRender)
@@ -133,6 +133,7 @@ namespace AHD.MyNes.Nes
             {
                 num2 = (this._bufferSize - this._lastPosition) + writePosition;
             }
+            num2 = 100;
             if (num2 != 0)
             {
                 for (int i = 0; i < num2; i += 2)
@@ -146,10 +147,10 @@ namespace AHD.MyNes.Nes
                         }
                     }
                     num4 = (ushort)(num4 * _MasterVolume);
-                    this._soundData[this._dataPosition + 1] = (byte)((ushort)((num4 & 0xff00) >> 8));
-                    this._soundData[this._dataPosition] = (byte)(num4 & 0xff);
-                    this._dataPosition += 2;
-                    this._dataPosition = this._dataPosition % this._bufferSize;
+                    //this._soundData[this._dataPosition + 1] = (byte)((ushort)((num4 & 0xff00) >> 8));
+                    //this._soundData[this._dataPosition] = (byte)(num4 & 0xff);
+                    //this._dataPosition += 2;
+                    //this._dataPosition = this._dataPosition % this._bufferSize;
                 }
                 //this._buffer.Write(this._soundData, 0, LockFlags.None);
                 this._lastPosition = writePosition;

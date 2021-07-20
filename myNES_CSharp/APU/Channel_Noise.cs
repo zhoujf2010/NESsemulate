@@ -139,6 +139,8 @@ namespace AHD.MyNes.Nes
             }
             set
             {
+                if (value >  100)
+                    System.Console.WriteLine();
                 this._noiseShiftData = value;
             }
         }

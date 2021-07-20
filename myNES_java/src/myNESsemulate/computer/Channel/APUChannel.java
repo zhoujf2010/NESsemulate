@@ -1,21 +1,21 @@
-package NESDemo.Channel;
+package myNESsemulate.computer.Channel;
 
 public class APUChannel
 {
 
     // Fields
-    private boolean _enabled;
-    private int _envelope;
-    private int _envelopeCounter;
-    private boolean _envelopeDecay;
-    private int _lengthCounter;
-    private boolean _lengthCounterDisable;
-    private double _sampleCount;
+    protected boolean Enabled;
+    protected int Envelope;
+    protected int EnvelopeCounter;
+    protected boolean EnvelopeDecayDisable;
+    protected int LengthCounter;
+    protected boolean LengthCounterDisable;
+    protected double SampleCount;
     protected double _samplingRate;
-    private int _volume;
-    private int _wavelength;
-    private boolean _waveStatus;
-    private int _ClockSpeed = 1790000;
+    protected int Volume;
+    protected int Wavelength;
+    protected boolean _waveStatus;
+    protected int ClockSpeed = 1790000;
 
     // Methods
     public APUChannel(double samplingRate) {
@@ -33,7 +33,7 @@ public class APUChannel
         }
     }
 
-    public long RenderSample() {
+    public int RenderSample() {
         return 0;
     };
 
@@ -60,75 +60,85 @@ public class APUChannel
 
     // Properties
     public boolean getEnabled() {
-        return this._enabled;
+        return this.Enabled;
     }
 
     public void setEnabled(boolean value) {
-        this._enabled = value;
+        this.Enabled = value;
     }
 
     public int getEnvelope() {
-        return this._envelope;
+        return this.Envelope;
     }
 
     public void setEnvelope(int value) {
-        this._envelope = value;
+        if (value < -1)
+            System.out.print("");
+        this.Envelope = value;
     }
 
     public int getEnvelopeCounter() {
-        return this._envelopeCounter;
+        return this.EnvelopeCounter;
     }
 
     public void setEnvelopeCounter(int value) {
-        this._envelopeCounter = value;
+        if (value < -1)
+            System.out.print("");
+        this.EnvelopeCounter = value;
     }
 
     public boolean getEnvelopeDecayDisable() {
-        return this._envelopeDecay;
+        return this.EnvelopeDecayDisable;
     }
 
     public void setEnvelopeDecayDisable(boolean value) {
-        this._envelopeDecay = value;
+        this.EnvelopeDecayDisable = value;
     }
 
     public int getLengthCounter() {
-        return this._lengthCounter;
+        return this.LengthCounter;
     }
 
     public void setLengthCounter(int value) {
-        this._lengthCounter = value;
+        if (value < -1)
+            System.out.print("");
+        this.LengthCounter = value;
     }
 
     public boolean getLengthCounterDisable() {
-        return this._lengthCounterDisable;
+        return this.LengthCounterDisable;
     }
 
     public void setLengthCounterDisable(boolean value) {
-        this._lengthCounterDisable = value;
+        this.LengthCounterDisable = value;
     }
 
     public double getSampleCount() {
-        return this._sampleCount;
+        return this.SampleCount;
     }
 
     public void setSampleCount(double value) {
-        this._sampleCount = value;
+        this.SampleCount = value;
     }
 
     public int getVolume() {
-        return this._volume;
+        return this.Volume;
     }
 
     public void setVolume(int value) {
-        this._volume = value;
+        if (value < -1)
+            System.out.print("");
+        this.Volume = value;
     }
 
     public int getWavelength() {
-        return this._wavelength;
+        return this.Wavelength;
     }
 
     public void setWavelength(int value) {
-        this._wavelength = value;
+        if (value < -1)
+            System.out.print("");
+        this.Wavelength = value;
     }
 
     public boolean getWaveStatus() {
@@ -140,10 +150,12 @@ public class APUChannel
     }
 
     public int getClockSpeed() {
-        return this._ClockSpeed;
+        return this.ClockSpeed;
     }
 
     public void setClockSpeed(int value) {
-        this._ClockSpeed = value;
+        if (value < -1)
+            System.out.print("");
+        this.ClockSpeed = value;
     }
 }

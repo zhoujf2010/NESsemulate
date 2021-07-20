@@ -1,4 +1,4 @@
-package NESDemo.Channel;
+package myNESsemulate.computer.Channel;
 
 public class Channel_Triangle extends APUChannel
 {
@@ -23,17 +23,21 @@ public class Channel_Triangle extends APUChannel
         super(samplingRate);
     }
 
-    public long RenderSample() {
-        if (((super.getLengthCounter() > 0) && (this.getLinearCounter() > 0)) && (super.getWavelength() > 0)) {
-            super.setSampleCount(super.getSampleCount() + 1);
-            if (super.getSampleCount() >= this._renderedWavelength) {
-                super.setSampleCount(super.getSampleCount() - this._renderedWavelength);
-                this._sequence++;
-            }
-            return (long) (_sequenceData[(int) (this.getSequence() & 0x1f)] * 0x40);
-        }
+    public int RenderSample() {
+//        if (((super.getLengthCounter() > 0) && (this.getLinearCounter() > 0)) && (super.getWavelength() > 0)) {
+//            super.setSampleCount(super.getSampleCount() + 1);
+//            if (super.getSampleCount() >= this._renderedWavelength) {
+//                super.setSampleCount(super.getSampleCount() - this._renderedWavelength);
+//                this._sequence++;
+//            }
+//            int x =  (int) (_sequenceData[(int) (this.getSequence() & 0x1f)] * 0x40);
+//            if (x >256)
+//                System.out.println();
+////                x = 0;
+//            return x;
+//        }
         return 0;
-        // return (ushort)(_sequenceData[this.Sequence & 0x1f] * 0x40);
+//         return (long)(_sequenceData[(int) (this.getSequence() & 0x1f)] * 0x40);
     }
 
     public void UpdateEnvelope() {
@@ -58,15 +62,15 @@ public class Channel_Triangle extends APUChannel
 
     public void WriteReg1(byte b) {
         super.setLengthCounterDisable((b & 0x80) != 0);
-        this.setLinearCounterLoad(b & 0x7f);
+        this.setLinearCounterLoad((b & 0x7f)&0xff);
     }
 
     public void WriteReg2(byte b) {
-        this.setRightShift(b & 3);
+        this.setRightShift((b & 3)&0xff);
     }
 
     public void WriteReg3(byte b) {
-        super.setWavelength((super.getWavelength() & 0x700) | b);
+        super.setWavelength(((super.getWavelength() & 0x700) | b)&0xff);
         this.UpdateFrequency();
     }
 
@@ -83,6 +87,8 @@ public class Channel_Triangle extends APUChannel
     }
 
     public void setLinearCounter(int value) {
+        if (value < -1)
+            System.out.print("");
         this._linearCounter = value;
     }
 
@@ -91,6 +97,8 @@ public class Channel_Triangle extends APUChannel
     }
 
     public void setLinearCounterLoad(int value) {
+        if (value < -1)
+            System.out.print("");
         this._linearCounterLoad = value;
     }
 
@@ -99,6 +107,8 @@ public class Channel_Triangle extends APUChannel
     }
 
     public void setRightShift(int value) {
+        if (value < -1)
+            System.out.print("");
         this._rightShift = value;
     }
 
@@ -107,6 +117,8 @@ public class Channel_Triangle extends APUChannel
     }
 
     public void setSequence(long value) {
+        if (value < -1)
+            System.out.print("");
         this._sequence = value;
     }
 

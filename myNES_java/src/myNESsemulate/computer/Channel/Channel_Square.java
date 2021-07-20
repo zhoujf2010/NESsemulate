@@ -1,4 +1,4 @@
-package NESDemo.Channel;
+package myNESsemulate.computer.Channel;
 
 //////////////////////////////////////////////////////////////////////////////
 //This file is part of My Nes                                               //
@@ -49,7 +49,7 @@ public class Channel_Square extends APUChannel
         this._isFirstChannel = firstChannel;
     }
 
-    public long RenderSample() {
+    public int RenderSample() {
         if (super.getLengthCounter() > 0) {
             super.setSampleCount(super.getSampleCount() + 1);// .getSampleCount++;
             if (super.getWaveStatus()
@@ -67,9 +67,9 @@ public class Channel_Square extends APUChannel
                 return 0;
             }
             if (!super.getEnvelopeDecayDisable()) {
-                return (long) (0x40 * super.getEnvelope());
+                return (int) (0x40 * super.getEnvelope());
             }
-            return (long) (0x40 * super.getVolume());
+            return (int) (0x40 * super.getVolume());
         }
         return 0;
         /*
@@ -171,14 +171,14 @@ public class Channel_Square extends APUChannel
     }
 
     public void WriteReg3(byte b) {
-        super.setWavelength((super.getWavelength() & 0x700) | b);
+        super.setWavelength(((super.getWavelength() & 0x700) | b) & 0xff);
         this.UpdateFrequency();
     }
 
     public void WriteReg4(byte b) {
         super.setWavelength((super.getWavelength() & 0xff) | ((b & 7) << 8));
         this.UpdateFrequency();
-        super.setLengthCounter((_lengthValues[(b & 0xf8) >> 3])&0xff);
+        super.setLengthCounter((_lengthValues[(b & 0xf8) >> 3]) & 0xff);
         if (!super.getEnvelopeDecayDisable()) {
             super.setEnvelope(15);
         }
@@ -189,6 +189,8 @@ public class Channel_Square extends APUChannel
     }
 
     public void setDuty(int value) {
+        if (value < -1)
+            System.out.print("");
         this._duty = value;
     }
 
@@ -197,6 +199,8 @@ public class Channel_Square extends APUChannel
     }
 
     public void setDutyPercentage(double value) {
+        if (value < -1)
+            System.out.print("");
         this._dutyPercentage = value;
     }
 
@@ -205,6 +209,8 @@ public class Channel_Square extends APUChannel
     }
 
     public void setRightShift(int value) {
+        if (value < -1)
+            System.out.print("");
         this._rightShift = value;
     }
 
@@ -213,6 +219,8 @@ public class Channel_Square extends APUChannel
     }
 
     public void setSweepCounter(int value) {
+        if (value < -1)
+            System.out.print("");
         this._sweepCounter = value;
     }
 
@@ -237,6 +245,8 @@ public class Channel_Square extends APUChannel
     }
 
     public void setSweepRate(int value) {
+        if (value < -1)
+            System.out.print("");
         this._sweepRate = value;
     }
 }
