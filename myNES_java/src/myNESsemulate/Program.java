@@ -3,7 +3,12 @@ package myNESsemulate;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 import java.awt.Toolkit;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.WindowEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.image.RenderedImage;
 import java.io.ByteArrayOutputStream;
@@ -45,12 +50,13 @@ public class Program
         pc.card = rom;
 //        pc.loadRom(rom);
         pc.Init();
+        System.out.println("rom:" + rom.length);
 
         JFrame frame = new JFrame("NES 模拟器");
 
         // 设置窗体属性
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(1050 + 16, 1000 + 16 + 25);
+        frame.setSize(256 + 16, 240 + 16 + 25);
         Dimension screensize = Toolkit.getDefaultToolkit().getScreenSize();
         int x = ((int) screensize.getWidth() - frame.getWidth()) / 2;
         int y = ((int) screensize.getHeight() - frame.getHeight()) / 2;
@@ -63,15 +69,19 @@ public class Program
 
             public void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                RenderedImage img = pc.bi;
+                RenderedImage img = pc.getRenderedImage();
+                double dx = frame.getSize().getWidth()/256;
+                double dy = frame.getSize().getHeight() / 224;
+                double dm = Math.min(dx, dy);
+//                g.drawLine(0, 0, 100, 100);
                 if (img != null)
-                    ((Graphics2D) g).drawRenderedImage(img, AffineTransform.getScaleInstance(4.0, 4.0));
+                    ((Graphics2D) g).drawRenderedImage(img, AffineTransform.getScaleInstance(dm,dm));
             }
         };
         mainPanel.setLocation(10, 10);
-        mainPanel.setSize(frame.getWidth() - 10 - 25, frame.getHeight() - 25 - 35);
+        mainPanel.setSize(256 - 10 - 25, 240 - 25 - 35);
         frame.add(mainPanel);
-
+        
         // 监听按健，把信息送出模拟PC机中
         frame.addKeyListener(pc.joypad);
 
@@ -85,8 +95,53 @@ public class Program
         new Timer(1000, (e) -> {
             frame.setTitle("NES 模拟器  " + pc.getFrameCount() + " fps");
         }).start();
+        
 
-        frame.setVisible(true);// 显示窗体
+        frame.setUndecorated(true);
+        frame.setResizable(false);
+        frame.addMouseListener(new MouseListener() {
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                // TODO Auto-generated method stub
+                System.out.println(e.toString());
+                System.out.println(frame.getSize());
+                if (e.getClickCount() == 2) {
+//                    window.dispose();
+                    frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                // TODO Auto-generated method stub
+                
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                // TODO Auto-generated method stub
+                
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                // TODO Auto-generated method stub
+                
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                // TODO Auto-generated method stub
+                
+            }
+            
+        });
+
+        GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        GraphicsDevice vc = env.getDefaultScreenDevice();
+      vc.setFullScreenWindow(frame);
+//        frame.setVisible(true);// 显示窗体
         pc.start(); // 开机
     }
 

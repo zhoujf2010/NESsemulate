@@ -2,6 +2,7 @@ package myNESsemulate.computer;
 
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
+import java.awt.image.RenderedImage;
 import java.awt.image.WritableRaster;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -34,11 +35,10 @@ public class MotherBoard
     }
 
     public void start() {
-        InitDirectSound();
+        InitSoundCard();
 
         cpu.pc_register = cpu.ReadBus16(0xFFFC);// 读取程序启动点
         cpu.RunProcessor();
-
     }
 
     public byte ReadBus8(int address) {
@@ -71,7 +71,10 @@ public class MotherBoard
             memory.WriteMemory8(address, data);
     }
 
-    private void InitDirectSound() {
+    SourceDataLine auline = null;
+    Queue<byte[]> wavqueue = new LinkedList<byte[]>();
+
+    private void InitSoundCard() {
         float rate = 44100;
         int sampleSize = 16;
         boolean bigEndian = false;
@@ -85,38 +88,33 @@ public class MotherBoard
             auline = (SourceDataLine) AudioSystem.getLine(info);
             auline.open(wfx);
             auline.start();
+            PlayBuffer();
         }
         catch (Exception e) {
             e.printStackTrace();
             return;
         }
-        
+    }
+
+    public void PlayBuffer() {
         new Thread()
         { // 1.创建一个Thread的匿名类
             public void run() { // 2.重写run方法
-                PlayBuffer();
+                while (true) {
+                    if (wavqueue.size() == 0) {
+                        try {
+                            Thread.sleep(1);
+                        }
+                        catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        continue;
+                    }
+                    byte[] dt = wavqueue.poll();
+                    auline.write(dt, 0, dt.length); // 播放
+                }
             }
         }.start();
-
-    }
-
-    SourceDataLine auline = null;
-    Queue<byte[]> wavqueue = new LinkedList<byte[]>();
-
-    public void PlayBuffer() {
-        while (true) {
-            if (wavqueue.size() == 0) {
-                try {
-                    Thread.sleep(1);
-                }
-                catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                continue;
-            }
-            byte[] dt = wavqueue.poll();
-            auline.write(dt, 0, dt.length); // 播放
-        }
     }
 
     public int Ticks_Per_Scanline = 113;// 113 for NTSC, 106 for PAL
@@ -164,12 +162,13 @@ public class MotherBoard
         }
         _lastFrameTime = System.currentTimeMillis();
 
-        int width = 256;
-        int height = 240;
-        if (bi == null)
-            bi = new BufferedImage(width, height, BufferedImage.TYPE_USHORT_565_RGB);
-        WritableRaster raster = bi.getRaster();
-        raster.setDataElements(0, 0, width, height, offscreenBuffer);
+        newa = ppu.offscreenBuffer;
+//        int width = 256;
+//        int height = 240;
+//        if (bi == null)
+//            bi = new BufferedImage(width, height, BufferedImage.TYPE_USHORT_565_RGB);
+//        WritableRaster raster = bi.getRaster();
+//        raster.setDataElements(0, 0, width, height, offscreenBuffer);
 
         if (frameRefresh != null) // 通知外部取出该帧数据
             frameRefresh.actionPerformed(null);
@@ -182,6 +181,22 @@ public class MotherBoard
 //            // TODO Auto-generated catch block
 //            e.printStackTrace();
 //        }
+    }
+    
+
+
+    private short[] newa = null;
+    // 取得一帧显示图象对象
+    public RenderedImage getRenderedImage() {
+        if (newa != null) {
+            int width = 256;
+            int height = 224;
+            BufferedImage bi = new BufferedImage(width, height, BufferedImage.TYPE_USHORT_565_RGB);
+            WritableRaster raster = bi.getRaster();
+            raster.setDataElements(0, 0, width, height, newa);
+            return bi;
+        }
+        return null;
     }
 
     // 获取每秒的帧数

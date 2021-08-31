@@ -113,39 +113,64 @@ public class JoyPad implements KeyListener
             joypaddata2 = joypaddata2 ^ dt2;
     }
 
-
-
-    private static int ReadKey1_joypad(short controlType, short control, short amount, int num, ICalc calc) {
+    private static int ReadPad(int controlType, int control, int amount) {
         if (controlType == 1 && control == 0) // A (健盘K)
-            num = calc.CalcNum(num, 0x01);
+            return 0x01;
         else if (controlType == 1 && control == 3) // B (健盘J)
-            num = calc.CalcNum(num, 0x02);
+            return 0x02;
         else if (controlType == 1 && control == 8) // Select (健盘V)
-            num = calc.CalcNum(num, 0x04);
+            return 0x04;
         else if (controlType == 1 && control == 9) // Select (健盘B)
-            num = calc.CalcNum(num, 0x08);
+            return 0x08;
         else if (controlType == 2 && control == 1 && amount < 0) // Up (健盘W)
-            num = calc.CalcNum(num, 0x10);
+            return 0x10;
         else if (controlType == 2 && control == 1 && amount > 0) // Down (健盘S)
-            num = calc.CalcNum(num, 0x20);
+            return 0x20;
         else if (controlType == 2 && control == 0 && amount < 0) // Left (健盘A)
-            num = calc.CalcNum(num, 0x40);
+            return 0x40;
         else if (controlType == 2 && control == 0 && amount > 0) // Right (健盘D)
-            num = calc.CalcNum(num, 0x80);
+            return 0x80;
         else if (controlType == 2 && amount == 0) { // 方向归0
-            num = calc.CalcNum(num, 0x10);
-            num = calc.CalcNum(num, 0x20);
-            num = calc.CalcNum(num, 0x40);
-            num = calc.CalcNum(num, 0x80);
+//            num = calc.CalcNum(num, 0x10);
+//          num = calc.CalcNum(num, 0x20);
+//          num = calc.CalcNum(num, 0x40);
+//          num = calc.CalcNum(num, 0x80);
+            return 0x10 | 0x20 | 0x40 |0x80;
         }
-        return num;
+        return 0;
     }
 
-    interface ICalc
-    {
-        public int CalcNum(int num1, int num2);
-    }
-    
+//    private static int ReadKey1_joypad(short controlType, short control, short amount, int num, ICalc calc) {
+//        if (controlType == 1 && control == 0) // A (健盘K)
+//            num = calc.CalcNum(num, 0x01);
+//        else if (controlType == 1 && control == 3) // B (健盘J)
+//            num = calc.CalcNum(num, 0x02);
+//        else if (controlType == 1 && control == 8) // Select (健盘V)
+//            num = calc.CalcNum(num, 0x04);
+//        else if (controlType == 1 && control == 9) // Select (健盘B)
+//            num = calc.CalcNum(num, 0x08);
+//        else if (controlType == 2 && control == 1 && amount < 0) // Up (健盘W)
+//            num = calc.CalcNum(num, 0x10);
+//        else if (controlType == 2 && control == 1 && amount > 0) // Down (健盘S)
+//            num = calc.CalcNum(num, 0x20);
+//        else if (controlType == 2 && control == 0 && amount < 0) // Left (健盘A)
+//            num = calc.CalcNum(num, 0x40);
+//        else if (controlType == 2 && control == 0 && amount > 0) // Right (健盘D)
+//            num = calc.CalcNum(num, 0x80);
+//        else if (controlType == 2 && amount == 0) { // 方向归0
+//            num = calc.CalcNum(num, 0x10);
+//            num = calc.CalcNum(num, 0x20);
+//            num = calc.CalcNum(num, 0x40);
+//            num = calc.CalcNum(num, 0x80);
+//        }
+//        return num;
+//    }
+//
+//    interface ICalc
+//    {
+//        public int CalcNum(int num1, int num2);
+//    }
+
     private static void ReadFormJoypadLinux(JoyPad pad) throws FileNotFoundException {
 
         FileInputStream inputStream = new FileInputStream("/dev/input/js0");
@@ -156,9 +181,6 @@ public class JoyPad implements KeyListener
                 try {
                     byte[] buffer = new byte[8];
                     int b;
-                    String result = "";
-                    System.out.println("Read from device ");
-                    short oldmount = 0;
                     while ((b = inputStream.read(buffer)) > 0) {
                         if (b < 8)
                             System.out.println("Only read " + b + " bytes from F710. Ignoring and continuing.");
@@ -171,27 +193,22 @@ public class JoyPad implements KeyListener
                                                            // buffer[6]==2 =>
                                                            // joystick
                             short control = buffer[7];
-//                          System.err
-//                                  .println("got HID event time " + time + " controlType " + controlType + " control "
-//                                          + control + " amount " + amount + " b5=" + buffer[5] + "b4=" + buffer[4]);
+//                            System.out
+//                                    .println("got HID event time " + time + " controlType " + controlType + " control "
+//                                            + control + " amount " + amount + " b5=" + buffer[5] + "b4=" + buffer[4]);
 
-//                          System.out.println("====1>" + pc.joypaddata1);
                             if (amount != 0) {
-                                pad.joypaddata1 = ReadKey1_joypad(controlType, control, amount, pad.joypaddata1,
-                                        (x, y) -> {
-                                            return x | y;
-                                        });
-                                oldmount = amount;
+                                int v = ReadPad(controlType, control, amount);
+                                pad.joypaddata1 = pad.joypaddata1 | v;
                             }
                             else {
-                                pad.joypaddata1 = ReadKey1_joypad(controlType, control, amount, pad.joypaddata1,
-                                        (x, y) -> {
-                                            return x & ~y;// x ^ y;
-                                        });
+                                int v = ReadPad(controlType, control, amount);
+                                pad.joypaddata1 = pad.joypaddata1 & ~v;
                             }
 //                          System.out.println("====2>" + pc.joypaddata1);
                         }
                     }
+                    inputStream.close();
                 }
                 catch (Exception e) {
                     System.out.println("F710.run failure. Exiting read thread." + e);

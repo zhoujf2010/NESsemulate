@@ -19,12 +19,10 @@ public class AudioCard
     boolean IsPaused = false;
     int _MasterVolume = 7;
     long k = 0;
-    // Methods
 
     public AudioCard(MotherBoard motherBoard) {
         this.mb = motherBoard;
 
-//        this.InitDirectSound();
         this.Reset();
 
         SetClockSpeed(1789772);
@@ -48,20 +46,18 @@ public class AudioCard
         int rate = 44100;
         int sampleSize = 16;
         int second = rate * sampleSize / 8;
-        int num2 = second / 60;
-        byte[] dt = new byte[num2];
-        if (num2 != 0) {
-            for (int i = 0; i < num2 / 2; i += 2) {
-                int num4 = 0;
-                for (int j = 0; j < 5; j++) {
-                    if (this._channelEnabled[j]) {
-                        num4 = (int) (num4 + this._soundChannels[j].RenderSample());
-                    }
+        int len = second / 60;
+        byte[] dt = new byte[len];
+        for (int i = 0; i < len / 2; i += 2) {
+            int tmp= 0;
+            for (int j = 0; j < 5; j++) {
+                if (this._channelEnabled[j]) {
+                    tmp = (int) (tmp+ this._soundChannels[j].RenderSample());
                 }
-                num4 = num4 * _MasterVolume;
-                dt[i * 2] = (byte) (num4 & 0xff);
-                dt[i * 2 + 1] = (byte) ((num4 & 0xff00) >> 8);
             }
+            tmp= tmp* _MasterVolume;
+            dt[i * 2] = (byte) (tmp & 0xff);
+            dt[i * 2 + 1] = (byte) ((tmp & 0xff00) >> 8);
         }
         return dt;
     }
@@ -79,8 +75,6 @@ public class AudioCard
             else
                 k = 2;
         }
-        // Channel_Noise TR = (Channel_Noise)_soundChannels[3];
-        // _Nes.myVideo.DrawText(TR.LengthCounter.ToString(), 1);
         while (k > 0) {
             this._frameCounter++;
             int num = this._palTiming ? (this._frameCounter % 5) : (this._frameCounter % 4);
@@ -105,10 +99,6 @@ public class AudioCard
     }
 
     public void Reset() {
-        // this._soundChannels = new APUChannel[] { new Channel_Square(44100.0,
-        // true), new Channel_Square(44100.0, false), new
-        // Channel_Triangle(44100.0), new Channel_Noise(44100.0), new
-        // Channel_DMC(44100.0, _Nes) };
         this._soundChannels = new APUChannel[] {new Channel_Square(SampleRate, true), // 0
                 new Channel_Square(SampleRate, false), // 1
                 new Channel_Triangle(SampleRate), // 2
@@ -119,15 +109,6 @@ public class AudioCard
         for (int i = 0; i < 5; i++) {
             this._channelEnabled[i] = true;
         }
-    }
-
-    public void Shutdown() {
-        // if ((this._buffer != null) && !this._buffer.Disposed)
-        // {
-        // this._buffer.Stop(); IsPaused = true;
-        // }
-        // this._buffer.Dispose();
-        // this._soundDevice.Dispose();
     }
 
     public void WriteDMCReg1(byte b) {
