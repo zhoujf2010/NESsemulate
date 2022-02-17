@@ -31,8 +31,8 @@ public class MotherBoard
         ppu = new VideoCard(this);
         apu = new AudioCard(this);
         memory = new Memory();
+//        joypad = new JoyPad2();
         joypad = new JoyPad2();
-//        joypad = new JoyPad();
     }
 
     public void start() {
@@ -191,7 +191,7 @@ public class MotherBoard
     public RenderedImage getRenderedImage() {
         if (newa != null) {
             int width = 256;
-            int height = 224;
+            int height = 240;
             BufferedImage bi = new BufferedImage(width, height, BufferedImage.TYPE_USHORT_565_RGB);
             WritableRaster raster = bi.getRaster();
             raster.setDataElements(0, 0, width, height, newa);

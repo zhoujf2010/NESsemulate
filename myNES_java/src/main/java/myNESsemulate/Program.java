@@ -1,6 +1,7 @@
 package myNESsemulate;
 
 import java.awt.Button;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -50,18 +51,22 @@ public class Program
         // 加载ROM文件
         byte[] rom = getContentFromSystem(rompath);
         pc.card = rom;
-//        pc.loadRom(rom);
         pc.Init();
         System.out.println("rom:" + rom.length);
 
         JFrame frame = new JFrame("NES 模拟器");
         frame.setLayout(null);
-
-        // 设置窗体属性
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//        frame.setSize(256 + 16, 240 + 16 + 25);
-//        frame.setSize(480 + 16, 320 + 16 + 25);
-        frame.setSize(480 , 320);
+        frame.setResizable(false); //大小固定不能调整
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);// 设置窗体属性
+        
+        //windows上尺寸
+//        frame.setSize(640+10, 600 + 15);
+        
+        //raspberry尺寸
+      frame.setSize(480 , 320);
+      frame.setUndecorated(true);//无边框
+        
+        
         Dimension screensize = Toolkit.getDefaultToolkit().getScreenSize();
         int x = ((int) screensize.getWidth() - frame.getWidth()) / 2;
         int y = ((int) screensize.getHeight() - frame.getHeight()) / 2;
@@ -75,54 +80,26 @@ public class Program
             public void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 RenderedImage img = pc.getRenderedImage();
-                double dx = frame.getSize().getWidth()/256;
-                double dy = frame.getSize().getHeight() / 224;
+                double dx = mainPanel.getSize().getWidth()/256;
+                double dy = mainPanel.getSize().getHeight() / 240;
                 double dm = Math.min(dx, dy);
-//                g.drawLine(0, 0, 100, 100);
                 if (img != null)
                     ((Graphics2D) g).drawRenderedImage(img, AffineTransform.getScaleInstance(dm,dm));
             }
         };
         
-        
-
         mainPanel.setLocation(0, 0);
         Dimension sz = frame.getSize();
-//        mainPanel.setSize(256 - 10 - 25, 240 - 25 - 35);
-        int width = (int)(sz.height / 240.0 * 256);
-        mainPanel.setSize(width, sz.height);
+        int height = sz.height;
+        if (!frame.isUndecorated())
+            height -= 10; //减去顶上的标题栏高度
+        int width = (int)(height / 240.0 * 256);
+        mainPanel.setSize(width, height);
         frame.add(mainPanel);
-        System.out.println(frame.getSize());
-        
-        
-        Button btn = new Button();
-        btn.setLabel("Exit");
-        btn.setLocation(256,10);
-        btn.setSize(40, 40);
-        btn.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
-            }
-        });
-        
-        
-//        frame.add(btn);
         
         // 监听按健，把信息送出模拟PC机中
         pc.joypad.Init(frame);
-        frame.setUndecorated(true);
-        frame.setResizable(false);
 
-//        GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
-//        GraphicsDevice vc = env.getDefaultScreenDevice();
-//        vc.setFullScreenWindow(frame);
-
-        System.out.println(frame.getSize());
-//        mainPanel.setSize(800, 600);
-        
-        
         // 刷新一帖画页，更新显示图片
         pc.SetFrameRefresh((e) -> {
             mainPanel.repaint();
@@ -134,46 +111,14 @@ public class Program
         }).start();
         
 
-        frame.addMouseListener(new MouseListener() {
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                // TODO Auto-generated method stub
-                System.out.println(e.toString());
-                System.out.println(frame.getSize());
-                if (e.getClickCount() == 2) {
-//                    window.dispose();
-                    frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
-                }
-            }
-
-            @Override
-            public void mousePressed(MouseEvent e) {
-                // TODO Auto-generated method stub
-                
-            }
-
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                // TODO Auto-generated method stub
-                
-            }
-
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                // TODO Auto-generated method stub
-                
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                // TODO Auto-generated method stub
-                
-            }
-            
-        });
-
+        //全屏控制
+//      GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
+//      GraphicsDevice vc = env.getDefaultScreenDevice();
+//      vc.setFullScreenWindow(frame);
+        
         frame.setVisible(true);// 显示窗体
+        
+        System.out.println(frame.getSize());
         pc.start(); // 开机
     }
 

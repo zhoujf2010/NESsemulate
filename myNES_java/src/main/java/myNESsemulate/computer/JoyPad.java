@@ -108,6 +108,7 @@ public class JoyPad implements KeyListener,IJoyPad
         int dt2 = ReadKey2(e.getKeyCode());
         if (dt2 > 0)
             joypaddata2 = joypaddata2 | dt2;
+        System.out.println(1);
     }
 
     @Override

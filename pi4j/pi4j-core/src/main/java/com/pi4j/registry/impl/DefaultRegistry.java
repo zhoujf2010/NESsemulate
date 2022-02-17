@@ -90,4 +90,8 @@ public class DefaultRegistry implements Registry {
     public <T extends IO> T get(String id, Class<T> type) throws IOInvalidIDException, IONotFoundException {
         return registry.get(id, type);
     }
+    
+    public void Remove(String id) {
+        registry.remove(id);
+    }
 }
